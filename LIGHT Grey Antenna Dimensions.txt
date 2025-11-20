@@ -1,0 +1,9 @@
+LIGHT Grey
+
+10.4cm basis width
+13.8cm basis height
+
+18.5cm inner rib
+
+2.2cm lower width
+4.75cm lower height
