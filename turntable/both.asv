@@ -117,11 +117,13 @@ thetaticks(0:45:315)
 ax = gca; ax.ThetaZeroLocation = 'right';
 legend('Location','best')
 
+
+
 % Elevation
 subplot(1,2,2)
-polarplot(deg2rad(el_deg-90), el_gain_dBi, '-o','LineWidth',2,'MarkerFaceColor','r','DisplayName','Test')
+polarplot(deg2rad(el_deg-90), mat2gray(el_gain_dBi), '-o','LineWidth',2,'MarkerFaceColor','r','DisplayName','Test')
 hold on
-polarplot(deg2rad(el), pat_el, 'b--','LineWidth',2,'DisplayName','Simulation')
+polarplot(deg2rad(el), mat2gray(pat_el), 'b--','LineWidth',2,'DisplayName','Simulation')
 title('Elevation Pattern (E-plane) - VERTICAL')
 rlim([-40 max([0, max(el_gain_dBi), max(pat_el)])])
 rticks(-40:10:max([0, max(el_gain_dBi), max(pat_el)]))
