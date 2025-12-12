@@ -16,4 +16,3 @@ xlabel('Distance (m)');
 ylabel('Rx (dBm)');
 grid on;
 title('Free-space Rx vs Distance');
-set(gca, 'XDir', 'reverse'); % optional: distances recorded from far to near
