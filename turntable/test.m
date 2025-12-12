@@ -1,5 +1,5 @@
 clear; clc
-import simulation
+import simulation.*
 %% 1) Azimuth pattern (turntable_test.csv)
 M1 = readmatrix('turntable_test.csv', 'DecimalSeparator',',');
 az_deg = M1(:,1);

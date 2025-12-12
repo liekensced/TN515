@@ -9,51 +9,43 @@
 % Frequency: 4.8 GHz
 
 clear; clc; close all;
+set(groot, 'DefaultAxesFontSize', 18); % bump plot font sizes
+set(groot, 'DefaultTextFontSize', 20);
 
-% Create default horn antenna
-h = horn;
 
 % Set the geometric properties
-h.FlareWidth = 0.104;   % Aperture width (m)
-h.FlareHeight = 0.138;  % Aperture height (m)
-h.FlareLength = 0.174;  % Flare length (m)
-h.Width = 0.022;        % Waveguide/throat width (m)
-h.Height = 0.0475;      % Waveguide/throat height (m)
-
-% Other defaults (can adjust if needed)
-% h.Length = 0.09;      % Waveguide length (default or set if known)
-% h.FeedOffset = [0 0]; % Feed offset (default)
-
-% Design the horn for 4.8 GHz operation
+h = horn;
+h.FlareWidth = 0.138; h.FlareHeight = 0.104; h.FlareLength = 0.174;
+h.Width = 0.0475; h.Height = 0.022; h.Length = 0.05;
 freq = 4.8e9;  % 4.8 GHz
-h = design(h, freq);
+
 
 % Display antenna info
-%figure;
-%show(h);
-%title('Pyramidal Horn Antenna Geometry');
-
-
-% Plot 3D radiation pattern
 figure;
-pattern(h, freq);
-[pat, az, el] = pattern(h, freq);
-title('3D Radiation Pattern at 4.8 GHz');
-Gpeak = max(pat(:));
-
-% Plot azimuth (H-plane) pattern
-figure;
-patternAzimuth(h, freq, 0);  % Phi=0 degrees
-title('Azimuth (H-plane) Pattern at 4.8 GHz');
-
-% Plot elevation (E-plane) pattern
-figure;
-patternElevation(h, freq, 90);  % Phi=90 degrees
-title('Elevation (E-plane) Pattern at 4.8 GHz');
+show(h);
+title('Pyramidal Horn Antenna Geometry');
 
 
-% Far-field approximation distance
-D = max(h.FlareWidth, h.FlareHeight);  % Max dimension
-lambda = physconst('LightSpeed') / freq;
-R_far = 2 * D^2 / lambda;
-fprintf('Recommended far-field distance: %.2f m\n', R_far);
+% % Plot 3D radiation pattern
+% figure;
+% pattern(h, freq);
+% [pat, az, el] = pattern(h, freq);
+% title('3D Radiation Pattern at 4.8 GHz');
+% Gpeak = max(pat(:));
+
+% % Plot azimuth (H-plane) pattern
+% figure;
+% patternAzimuth(h, freq, 0);  % Phi=0 degrees
+% title('Azimuth (H-plane) Pattern at 4.8 GHz');
+
+% % Plot elevation (E-plane) pattern
+% figure;
+% patternElevation(h, freq, 90);  % Phi=90 degrees
+% title('Elevation (E-plane) Pattern at 4.8 GHz');
+
+
+% % Far-field approximation distance
+% D = max(h.FlareWidth, h.FlareHeight);  % Max dimension
+% lambda = physconst('LightSpeed') / freq;
+% R_far = 2 * D^2 / lambda;
+% fprintf('Recommended far-field distance: %.2f m\n', R_far);

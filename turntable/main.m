@@ -13,23 +13,14 @@ clear; clc; close all;
 
 % Create default horn antenna
 h = horn;
-% Set the geometric properties
-h.FlareWidth = 0.104; % Aperture width (m)
-h.FlareHeight = 0.138; % Aperture height (m)
-h.FlareLength = 0.174; % Flare length (m)
-h.Width = 0.022; % Waveguide/throat width (m)
-h.Height = 0.0475; % Waveguide/throat height (m)
-% Other defaults (can adjust if needed)
-% h.Length = 0.09; % Waveguide length (default or set if known)
-% h.FeedOffset = [0 0]; % Feed offset (default)
-% Design the horn for 4.8 GHz operation
-freq = 4.8e9; % 4.8 GHz
-h = design(h, freq);
+h.FlareWidth = 0.138; h.FlareHeight = 0.104; h.FlareLength = 0.174;
+h.Width = 0.0475; h.Height = 0.022; h.Length = 0.05;
+freq = 4.8e9;  % 4.8 GHz
 
 % Display antenna info
-% figure;
-% show(h);
-% title('Pyramidal Horn Antenna Geometry');
+figure;
+show(h);
+title('Pyramidal Horn Antenna Geometry');
 
 % Plot 3D radiation pattern
 figure;
@@ -131,3 +122,35 @@ ax = gca; ax.ThetaZeroLocation = 'top'; ax.ThetaDir = 'clockwise';
 legend('Location','best')
 
 sgtitle('4.8 GHz Radiation Patterns: Simulation vs Test (4.5 m, 10 dBm TX)')
+
+%% Plot normalized patterns (relative to each cut's own maximum)
+figure('Position',[100 100 1000 450])
+% Azimuth - normalized
+subplot(1,2,1)
+az_gain_norm = az_norm; % already normalized to 0 dB max
+pat_az_norm = pat_az - max(pat_az); % normalize simulation
+polarplot(deg2rad(az_deg), az_gain_norm, '-o','LineWidth',2,'MarkerFaceColor','b','DisplayName','Test')
+hold on
+polarplot(deg2rad(az), pat_az_norm, 'r--','LineWidth',2,'DisplayName','Simulation')
+title('Azimuth Pattern (H-plane)')
+rlim([-40 0])
+rticks(-40:10:0)
+thetaticks(0:45:315)
+ax = gca; ax.ThetaZeroLocation = 'right';
+legend('Location','best')
+
+% Elevation - normalized
+subplot(1,2,2)
+el_gain_norm = el_norm; % already normalized to 0 dB max
+pat_el_norm = pat_el - max(pat_el); % normalize simulation
+polarplot(deg2rad(el_deg-90), el_gain_norm, '-o','LineWidth',2,'MarkerFaceColor','r','DisplayName','Test')
+hold on
+polarplot(deg2rad(el), pat_el_norm, 'b--','LineWidth',2,'DisplayName','Simulation')
+title('Elevation Pattern (E-plane) - VERTICAL')
+rlim([-40 0])
+rticks(-40:10:0)
+thetaticks(-90:30:90)
+ax = gca; ax.ThetaZeroLocation = 'top'; ax.ThetaDir = 'clockwise';
+legend('Location','best')
+
+sgtitle('4.8 GHz Radiation Patterns: Normalized (0 dB at peak)')

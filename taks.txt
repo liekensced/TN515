@@ -1,0 +1,26 @@
+Characterisation of the antennas:
+1. Physical description and determination of the 3 regions around the antennas
+2. Bandwidth (2 Ae)
+    1. Reflection coefficient
+    2. Working bandwidth and center frequency
+    3. VSWR
+3. Impedance adaptation (1 Ae)
+    1. At center frequency, theoretical adaptation of the impedance of the Ae using lossless lines
+4. Radiation pattern (2 Ae)
+    1. Measurement of the azimutal radiation pattern (on 2𝜋)
+    2. Measurement of the radiation pattern in elevation (on 𝜋)
+    3. Simulation of the radiation patterns (matlab | python)
+5. Determination of the gain (2 Ae)
+
+Propagation models
+1. Free space link
+    1. Determine the received power for different distances
+    2. Determine the influence of a polarisation mismatch on the received power
+    3. Determine the influence of a relative angle between the antennas on the received power
+2. Two-ray model
+    1. Validate the 2-ray model with a ground reflection
+3. Small-scale fading
+    1. Determine the characteristics of a small-scale flat fading channel
+        1. With direct LOS
+        2. Without direct LOS
+        
