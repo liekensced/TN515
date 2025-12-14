@@ -3,9 +3,9 @@
 % Parameters to set (link budget and environment)
 % -----------------------------------------------------------
 Pt_dBm = 20;           % Transmit power at antenna input [dBm]
-Gt_dBi = 0;            % Tx antenna gain toward Rx [dBi]
-Gr_dBi = 0;            % Rx antenna gain toward Tx [dBi]
-f_Hz   = 915e6;        % Carrier frequency [Hz] (example: 915 MHz)
+Gt_dBi = 8.71;            % Tx antenna gain toward Rx [dBi]
+Gr_dBi = 8.71;            % Rx antenna gain toward Tx [dBi]
+f_Hz   = 4.8e9;        % Carrier frequency [Hz] (example: 915 MHz)
 ht     = 1.5;          % Tx antenna height above ground [m]
 hr     = 1.5;          % Rx antenna height above ground [m]
 pol    = 'H';          % Polarization for reflection: 'V' (vertical/TM) or 'H' (horizontal/TE)
@@ -116,6 +116,8 @@ RMSE_2ra  = rmse(Pr_2ray_asym_dBm_align);
 
 fprintf('--- Validation ---\n');
 fprintf('Critical distance d_c = %.1f m\n', d_c);
+fprintf('Alignment offsets: Friis = %.2f dB | Two-ray full = %.2f dB | Two-ray asym = %.2f dB\n', ...
+    off_fs, off_2rf, off_2ra);
 fprintf('RMSE (aligned): Free-space = %.2f dB | Two-ray (full) = %.2f dB | Two-ray (asym) = %.2f dB\n', ...
     RMSE_fs, RMSE_2rf, RMSE_2ra);
 
@@ -135,6 +137,7 @@ title('Received power vs distance — measurement and theoretical models');
 xline(d_c, ':r', 'd_c (two-ray cross-over)', 'LineWidth', 1.5, 'LabelVerticalAlignment','bottom');
 legend('Location','best');
 hold off;
+saveas(gcf, 'Rx_vs_Distance.png');
 
 % Optional: log-log path-loss slopes visualization
 figure('Name','Path-loss trend (log-dB)');
@@ -146,4 +149,19 @@ grid on;
 xlabel('Distance (m) [log]');
 ylabel('Path loss (dB)');
 title('Path-loss vs distance (log-dB view)');
-legend
+legend;
+saveas(gcf, 'Path_Loss_LogLog.png');
+
+% Free-space only comparison
+figure('Name','Free-space Path Loss');
+PL_meas = Pt_dBm + Gt_dBi + Gr_dBi - Rx_meas_dBm;
+PL_fs = Pt_dBm + Gt_dBi + Gr_dBi - Pr_fs_dBm_aligned;
+plot(d, PL_meas, 'k-o', 'LineWidth', 1.5, 'DisplayName','Measured'); hold on;
+plot(d, PL_fs, '-', 'LineWidth', 2, 'DisplayName',sprintf('Friis (aligned, +%.1f dB)',off_fs));
+xlabel('Distance (m)');
+ylabel('Path Loss (dB)');
+grid on;
+title('Free-space Path Loss: Measurement vs Friis Model');
+legend('Location','best');
+hold off;
+saveas(gcf, 'Free_Space_Path_Loss.png');
