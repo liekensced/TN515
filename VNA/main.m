@@ -34,6 +34,10 @@ xline(3485, 'k-', 'LineWidth', 1.5);
 xline((3485+6120)/2, 'k--', 'LineWidth', 1.5);
 xline(6120, 'k-', 'LineWidth', 1.5);
 
+yyaxis left
+yline(-36, 'b-', 'LineWidth', 0.5);
+yyaxis right
+yline(1.032, 'Color', [1, 0.5, 0], 'LineWidth', 0.5);
 
 grid on; title('S11 - LightGrey Antenna')
 xlabel('Frequency (MHz)'); xlim([min(f1) max(f1)])
@@ -51,6 +55,11 @@ ylabel('VSWR'); ylim([1 10])
 xline(3485, 'k-', 'LineWidth', 1.5);
 xline((3485+6120)/2, 'k--', 'LineWidth', 1.5);
 xline(6120, 'k-', 'LineWidth', 1.5);
+
+yyaxis left
+yline(-36, 'b-', 'LineWidth', 0.5);
+yyaxis right
+yline(1.032, 'Color', [1, 0.5, 0], 'LineWidth', 0.5);
 
 grid on; title('S22 - Brick Antenna')
 xlabel('Frequency (MHz)'); xlim([min(f2) max(f2)])
@@ -150,6 +159,50 @@ Z_qw2 = sqrt(Z0 * abs(Z_load2));
 fprintf('\nBrick Antenna (S22):\n');
 fprintf('  Antenna Impedance:   %.2f + j%.2f Ω\n', Z_load2_real, Z_load2_imag);
 fprintf('  λ/4 Transformer Z:   %.2f Ω\n\n', Z_qw2);
+
+%% --- Smith Chart ---
+figure('Position',[100 100 900 600]);
+smithplot(f1(idx1_working)*1e6, Gamma1_complex(idx1_working))
+hold on
+smithplot(f2(idx2_working)*1e6, Gamma2_complex(idx2_working))
+
+% Calculate impedances
+Z0 = 50;
+Z1 = Z0 * (1 + Gamma1_complex) ./ (1 - Gamma1_complex);
+Z2 = Z0 * (1 + Gamma2_complex) ./ (1 - Gamma2_complex);
+
+% For LightGrey
+working_indices1 = find(idx1_working);
+[~, local_idx_lr1] = min(abs(imag(Z1(working_indices1))));
+idx_lr1 = working_indices1(local_idx_lr1);
+[~, local_idx_mr1] = max(real(Z1(working_indices1)));
+idx_mr1 = working_indices1(local_idx_mr1);
+
+% % Plot markers
+% plot(real(Gamma1_complex(idx_lr1)), imag(Gamma1_complex(idx_lr1)), 'bo', 'MarkerSize',10, 'MarkerFaceColor','b')
+% plot(real(Gamma1_complex(idx_mr1)), imag(Gamma1_complex(idx_mr1)), 'bs', 'MarkerSize',10, 'MarkerFaceColor','b')
+
+% % Text
+% text(real(Gamma1_complex(idx_lr1)), imag(Gamma1_complex(idx_lr1)), ' Least Reactive (LG)', 'VerticalAlignment','bottom', 'HorizontalAlignment','right')
+% text(real(Gamma1_complex(idx_mr1)), imag(Gamma1_complex(idx_mr1)), ' Most Resistive (LG)', 'VerticalAlignment','top', 'HorizontalAlignment','left')
+
+% For Brick
+working_indices2 = find(idx2_working);
+[~, local_idx_lr2] = min(abs(imag(Z2(working_indices2))));
+idx_lr2 = working_indices2(local_idx_lr2);
+[~, local_idx_mr2] = max(real(Z2(working_indices2)));
+idx_mr2 = working_indices2(local_idx_mr2);
+
+% % Plot markers
+% plot(real(Gamma2_complex(idx_lr2)), imag(Gamma2_complex(idx_lr2)), 'ro', 'MarkerSize',10, 'MarkerFaceColor','r')
+% plot(real(Gamma2_complex(idx_mr2)), imag(Gamma2_complex(idx_mr2)), 'rs', 'MarkerSize',10, 'MarkerFaceColor','r')
+
+% % Text
+% text(real(Gamma2_complex(idx_lr2)), imag(Gamma2_complex(idx_lr2)), ' Least Reactive (Brick)', 'VerticalAlignment','bottom', 'HorizontalAlignment','right')
+% text(real(Gamma2_complex(idx_mr2)), imag(Gamma2_complex(idx_mr2)), ' Most Resistive (Brick)', 'VerticalAlignment','top', 'HorizontalAlignment','left')
+
+title('Smith Chart: 3-6 GHz Sweep')
+hold off
 
 
 
