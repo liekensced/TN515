@@ -47,8 +47,9 @@ Gt = 10^(Gt_dBi/10);
 Gr = 10^(Gr_dBi/10);
 
 % Critical distance for two-ray cross-over (NS-2 classic)
-d_c = 4*pi*ht*hr/lambda;  % [m]
-
+d_c = 20*pi*ht*hr/lambda/3;  % [m]
+d_break = 2*pi*ht*hr/lambda;    % [m] (alternative definition)
+fprintf('Critical distance d_c = %.2f m | Alternative d_break = %.2f m\n', d_c, d_break);
 %% -----------------------------------------------------------
 % Theoretical models
 % -----------------------------------------------------------
@@ -59,6 +60,14 @@ Pr_fs_dBm = Pt_dBm + Gt_dBi + Gr_dBi - Lfs_dB - ap_dB - a_dB;
 
 % 2) Full two-ray with Fresnel ground reflection (complex Γ(θ))
 %    Geometry: direct path d1, reflected path d2; grazing angle θ from ground
+
+%Asymptotoic or full two-ray
+if max(distVar) < 20*pi*ht*hr/lambda/3
+    fprintf('\nDistances are small compared to critical distance; full two-ray model is recommended.\n');
+elseif min(distVar) < 20*pi*ht*hr/lambda/3
+    fprintf('\nDistances span both near and far regions; full two-ray model is recommended.\n');
+end
+
 d1 = sqrt(d.^2 + (ht - hr).^2);
 d2 = sqrt(d.^2 + (ht + hr).^2);
 theta_graz = atan2(ht+hr, d);                       % angle from ground [rad]
@@ -89,6 +98,27 @@ sumField = exp(-1i*k.*d1)./d1 + Gamma .* exp(-1i*k.*d2)./d2;
 Pr_2ray_full_W = (10^(Pt_dBm/10)/1000) * Gt * Gr * fac .* (abs(sumField).^2);
 Pr_2ray_full_dBm = 10*log10(Pr_2ray_full_W*1000);
 
+% Create finer distance array for smooth theoretical curve (2x points)
+d_fine = linspace(min(d), max(d), 2*length(d));
+d1_fine = sqrt(d_fine.^2 + (ht - hr).^2);
+d2_fine = sqrt(d_fine.^2 + (ht + hr).^2);
+theta_graz_fine = atan2(ht+hr, d_fine);
+sin_t_fine = sin(theta_graz_fine);
+cos_t_fine = cos(theta_graz_fine);
+
+Xh_fine = sqrt(eps_g - cos_t_fine.^2);
+Xv_fine = Xh_fine ./ eps_g;
+if upper(pol)=='H'
+    X_fine = Xh_fine;
+else
+    X_fine = Xv_fine;
+end
+Gamma_fine = (sin_t_fine - X_fine) ./ (sin_t_fine + X_fine);
+
+sumField_fine = exp(-1i*k.*d1_fine)./d1_fine + Gamma_fine .* exp(-1i*k.*d2_fine)./d2_fine;
+Pr_2ray_full_W_fine = (10^(Pt_dBm/10)/1000) * Gt * Gr * fac .* (abs(sumField_fine).^2);
+Pr_2ray_full_dBm_fine = 10*log10(Pr_2ray_full_W_fine*1000);
+
 % 3) Asymptotic two-ray (far region, |Γ|≈1, phase ~ destructive)
 %    Pr ≈ Pt*Gt*Gr * (ht^2*hr^2 / d^4)   (in linear power)
 Pr_2ray_asym_W = (10^(Pt_dBm/10)/1000) * Gt * Gr .* (ht^2 .* hr^2) ./ (d.^4);
@@ -104,6 +134,7 @@ off_2ra  = mean(Rx_meas_dBm - Pr_2ray_asym_dBm);
 
 Pr_fs_dBm_aligned      = Pr_fs_dBm      + off_fs;
 Pr_2ray_full_dBm_align = Pr_2ray_full_dBm + off_2rf;
+Pr_2ray_full_dBm_fine_align = Pr_2ray_full_dBm_fine + off_2rf;
 Pr_2ray_asym_dBm_align = Pr_2ray_asym_dBm + off_2ra;
 
 %% -----------------------------------------------------------
@@ -122,46 +153,161 @@ fprintf('RMSE (aligned): Free-space = %.2f dB | Two-ray (full) = %.2f dB | Two-r
     RMSE_fs, RMSE_2rf, RMSE_2ra);
 
 %% -----------------------------------------------------------
-% Plots: measurement + models
+% Plots: measurement vs two-ray models
 % -----------------------------------------------------------
-figure('Name','Rx vs Distance: measurement +     models');
-plot(d, Rx_meas_dBm, 'k-', 'LineWidth', 1.5, 'DisplayName','Measurement'); hold on;
-plot(d, Pr_fs_dBm_aligned,      '-','LineWidth',2, 'DisplayName',sprintf('Friis (aligned, +%.1f dB)',off_fs));
-plot(d, Pr_2ray_full_dBm_align, '-','LineWidth',2, 'DisplayName',sprintf('Two-ray full (aligned, +%.1f dB)',off_2rf));
-plot(d, Pr_2ray_asym_dBm_align, '--','LineWidth',2, 'DisplayName',sprintf('Two-ray asymptotic (aligned, +%.1f dB)',off_2ra));
-
-xlabel('Distance (m)');
-ylabel('Rx (dBm)');
+figure(1);
+clf;
+PL_meas = Pt_dBm + Gt_dBi + Gr_dBi - Rx_meas_dBm;
+PL_2ray_full_fine = Pt_dBm + Gt_dBi + Gr_dBi - Pr_2ray_full_dBm_fine_align;
+plot(d, PL_meas, 'k-o', 'LineWidth', 3, 'DisplayName','Measured'); hold on;
+plot(d_fine, PL_2ray_full_fine, '-', 'LineWidth', 3, 'DisplayName','Two-ray model');
+xlabel('Distance (m)', 'FontSize', 32);
+ylabel('Path Loss (dB)', 'FontSize', 32);
+set(gca, 'FontSize', 32);
 grid on;
-title('Received power vs distance — measurement and theoretical models');
-xline(d_c, ':r', 'd_c (two-ray cross-over)', 'LineWidth', 1.5, 'LabelVerticalAlignment','bottom');
-legend('Location','best');
+legend('Location','best', 'FontSize', 32);
 hold off;
-saveas(gcf, 'Rx_vs_Distance.png');
-
-% Optional: log-log path-loss slopes visualization
-figure('Name','Path-loss trend (log-dB)');
-loglog(d, Pt_dBm + Gt_dBi + Gr_dBi - Rx_meas_dBm, 'k-', 'DisplayName','Measured path loss'); hold on;
-loglog(d, Pt_dBm + Gt_dBi + Gr_dBi - Pr_fs_dBm_aligned, '-', 'LineWidth',2, 'DisplayName','Friis aligned');
-loglog(d, Pt_dBm + Gt_dBi + Gr_dBi - Pr_2ray_full_dBm_align, '-', 'LineWidth',2, 'DisplayName','Two-ray full aligned');
-loglog(d, Pt_dBm + Gt_dBi + Gr_dBi - Pr_2ray_asym_dBm_align, '--', 'LineWidth',2, 'DisplayName','Two-ray asym aligned');
-grid on;
-xlabel('Distance (m) [log]');
-ylabel('Path loss (dB)');
-title('Path-loss vs distance (log-dB view)');
-legend;
-saveas(gcf, 'Path_Loss_LogLog.png');
+saveas(gcf, 'Path_Loss_Two_Ray.png');
 
 % Free-space only comparison
-figure('Name','Free-space Path Loss');
+figure(2);
+clf;
 PL_meas = Pt_dBm + Gt_dBi + Gr_dBi - Rx_meas_dBm;
 PL_fs = Pt_dBm + Gt_dBi + Gr_dBi - Pr_fs_dBm_aligned;
-plot(d, PL_meas, 'k-o', 'LineWidth', 1.5, 'DisplayName','Measured'); hold on;
-plot(d, PL_fs, '-', 'LineWidth', 2, 'DisplayName',sprintf('Friis (aligned, +%.1f dB)',off_fs));
-xlabel('Distance (m)');
-ylabel('Path Loss (dB)');
+plot(d, PL_meas, 'k-o', 'LineWidth', 3, 'DisplayName','Measured'); hold on;
+plot(d, PL_fs, '-', 'LineWidth', 3, 'DisplayName',sprintf('Friis (aligned, +%.1f dB)',off_fs));
+xlabel('Distance (m)', 'FontSize', 32);
+ylabel('Path Loss (dB)', 'FontSize', 32);
+set(gca, 'FontSize', 32);
 grid on;
-title('Free-space Path Loss: Measurement vs Friis Model');
-legend('Location','best');
+legend('Location','best', 'FontSize', 32);
 hold off;
 saveas(gcf, 'Free_Space_Path_Loss.png');
+
+%% -----------------------------------------------------------
+% Polarization Mismatch Plot
+% -----------------------------------------------------------
+% Load polarization measurements at 30, 60, and 90 degrees
+opts_pol = detectImportOptions('measurements.csv');
+opts_pol = setvartype(opts_pol, 'double');
+T_pol = readtable('measurements.csv', opts_pol);
+
+% Extract polarization data (columns 3, 4, 5 are 30°, 60°, 90°)
+pol_30 = T_pol{:, 3};
+pol_60 = T_pol{:, 4};
+pol_90 = T_pol{:, 5};
+dist_pol = T_pol{:, 1};
+
+% Filter valid measurements for each polarization
+valid_30 = ~isnan(pol_30) & ~isnan(dist_pol);
+valid_60 = ~isnan(pol_60) & ~isnan(dist_pol);
+valid_90 = ~isnan(pol_90) & ~isnan(dist_pol);
+
+figure(3);
+clf;
+
+% Define colors for each polarization angle
+color_30 = [0.85, 0.33, 0.10];  % Orange-red
+color_60 = [0.93, 0.69, 0.13];  % Gold
+color_90 = [0.49, 0.18, 0.56];  % Purple
+
+if any(valid_30)
+    % Calculate polarization mismatch loss (difference from 0° reference)
+    ref_power_30 = interp1(d, Rx_meas_dBm, dist_pol(valid_30), 'linear', 'extrap');
+    mismatch_30 = ref_power_30 - pol_30(valid_30);
+    
+    % Theoretical polarization mismatch loss: L_pol = cos²(θ) in dB = 20*log10(cos(θ))
+    theoretical_30 = -20*log10(cosd(30));
+    
+    plot(dist_pol(valid_30), mismatch_30, 'o-', 'Color', color_30, 'LineWidth', 3, 'DisplayName', '30° Measured');
+    hold on;
+    yline(theoretical_30, '--', 'Color', color_30, 'DisplayName', sprintf('30° Theoretical (%.2f dB)', theoretical_30), 'LineWidth', 3);
+end
+
+if any(valid_60)
+    ref_power_60 = interp1(d, Rx_meas_dBm, dist_pol(valid_60), 'linear', 'extrap');
+    mismatch_60 = ref_power_60 - pol_60(valid_60);
+    theoretical_60 = -20*log10(cosd(60));
+    
+    plot(dist_pol(valid_60), mismatch_60, 's-', 'Color', color_60, 'LineWidth', 3, 'DisplayName', '60° Measured');
+    yline(theoretical_60, '--', 'Color', color_60, 'DisplayName', sprintf('60° Theoretical (%.2f dB)', theoretical_60), 'LineWidth', 3);
+end
+
+if any(valid_90)
+    ref_power_90 = interp1(d, Rx_meas_dBm, dist_pol(valid_90), 'linear', 'extrap');
+    mismatch_90 = ref_power_90 - pol_90(valid_90);
+    
+    plot(dist_pol(valid_90), mismatch_90, '^-', 'Color', color_90, 'LineWidth', 3, 'DisplayName', '90° Measured');
+end
+
+xlabel('Distance (m)', 'FontSize', 32);
+ylabel('Polarization Mismatch Loss (dB)', 'FontSize', 32);
+set(gca, 'FontSize', 32);
+grid on;
+legend('Location','best', 'FontSize', 32);
+hold off;
+saveas(gcf, 'Polarization_Mismatch_Loss.png');
+
+%% -----------------------------------------------------------
+% Antenna Angle Influence Plot
+% -----------------------------------------------------------
+% Load turning measurements at different angles
+opts_turn = detectImportOptions('turning.csv');
+opts_turn = setvartype(opts_turn, 'double');
+T_turn = readtable('turning.csv', opts_turn);
+
+% Extract angle and power data for both distances
+deg_14m = T_turn{:, 1};
+rx_14m = T_turn{:, 2};
+deg_29m = T_turn{:, 4};
+rx_29m = T_turn{:, 5};
+
+% Filter valid measurements
+valid_14m = ~isnan(deg_14m) & ~isnan(rx_14m);
+valid_29m = ~isnan(deg_29m) & ~isnan(rx_29m);
+
+% Load turntable radiation pattern measurements (with comma as decimal separator)
+M_turntable = readmatrix('../turntable/turntable_test.csv', 'DecimalSeparator', ',');
+
+% Extract turntable data
+deg_pattern = M_turntable(:, 1);
+rx_pattern = M_turntable(:, 2);
+
+% Filter valid turntable measurements and limit to 0-30 degrees range
+valid_pattern = ~isnan(deg_pattern) & ~isnan(rx_pattern) & deg_pattern >= 0 & deg_pattern <= 30;
+deg_pattern_sub = deg_pattern(valid_pattern);
+rx_pattern_sub = rx_pattern(valid_pattern);
+
+% Sort by angle in ascending order for proper plotting
+[deg_pattern_sub, sort_idx] = sort(deg_pattern_sub);
+rx_pattern_sub = rx_pattern_sub(sort_idx);
+
+% Normalize turntable pattern to 0 dB at 0 degrees (boresight)
+idx_zero = find(deg_pattern_sub == 0, 1);
+rx_pattern_norm = rx_pattern_sub - rx_pattern_sub(idx_zero);
+
+figure(4);
+clf;
+
+% Normalize measurements to 0 dB at 0 degrees for comparison
+if any(valid_14m)
+    rx_14m_norm = rx_14m(valid_14m) - rx_14m(find(valid_14m, 1, 'first'));
+    plot(deg_14m(valid_14m), rx_14m_norm, 'o-', 'LineWidth', 3, 'DisplayName', '14m Measured');
+    hold on;
+end
+
+if any(valid_29m)
+    rx_29m_norm = rx_29m(valid_29m) - rx_29m(find(valid_29m, 1, 'first'));
+    plot(deg_29m(valid_29m), rx_29m_norm, 's-', 'LineWidth', 3, 'DisplayName', '29m Measured');
+end
+
+% Plot measured radiation pattern from turntable
+plot(deg_pattern_sub, rx_pattern_norm, '-', 'LineWidth', 3, 'DisplayName', 'Radiation Pattern (4.5m)');
+
+xlabel('Angle (degrees)', 'FontSize', 32);
+ylabel('Relative Power (dB)', 'FontSize', 32);
+set(gca, 'FontSize', 32);
+grid on;
+legend('Location','best', 'FontSize', 32);
+hold off;
+saveas(gcf, 'Antenna_Angle_Influence.png');
